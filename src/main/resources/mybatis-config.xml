@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- 使用druid开源数据库连接池 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="${jdbc.driverClassName}"/>
+        <property name="url" value="${jdbc.url.master}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="filters" value="stat"/>
+    </bean>
+    <bean id="dataSourceServerStore" class="com.alibaba.druid.pool.DruidDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="${jdbc.driverClassName}"/>
+        <property name="url" value="${jdbc.url.slave}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="filters" value="stat"/>
+    </bean>
+
+    <bean id="multipleDataSource" class="com.yunclass.demo.multi.data.MultipleDataSource">
+        <property name="defaultTargetDataSource" ref="dataSource"/>
+        <property name="targetDataSources">
+            <map key-type="com.yunclass.demo.multi.data.DataSources">
+                <entry key="MASTER" value-ref="dataSource"/>
+                <entry key="SLAVE" value-ref="dataSourceServerStore"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- 开启事务 -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+    <!-- 动态选择数据源的切面 -->
+    <bean id="multipleDataSourceAspect"
+          class="com.yunclass.demo.multi.data.MultipleDataSourceAspectAdvice"/>
+    <!-- 切面的配置 这里一定要以这种方式实现aop否则@Transactional会失效 -->
+    <aop:config>
+        <aop:aspect ref="multipleDataSourceAspect">
+            <aop:pointcut id="multipleDataSourcePoint"
+                          expression="@annotation(com.yunclass.demo.multi.data.RequireDataSource)"/>
+            <aop:before method="before" pointcut-ref="multipleDataSourcePoint"/>
+            <aop:after method="after" pointcut-ref="multipleDataSourcePoint"/>
+        </aop:aspect>
+    </aop:config>
+
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="multipleDataSource"/>
+    </bean>
+
+    <!-- MyBatis配置 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="multipleDataSource"/>
+        <!-- 自动扫描entity目录, 省掉Configuration.xml里的手工配置 -->
+        <property name="typeAliasesPackage" value="com.yunclass.demo.multi.entity"/>
+        <!-- 显式指定Mapper文件位置 -->
+        <property name="mapperLocations" value="classpath:/mapper/*Mapper.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+        <property name="basePackage" value="com.yunclass.demo.multi.mapper"/>
+        <property name="annotationClass" value="org.springframework.stereotype.Repository"/>
+    </bean>
+
+</beans>

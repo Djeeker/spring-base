@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration debug="false" >
+	<contextName>logisticscenter</contextName>
+    <property name="demo.log.pattern" value = "[%d{'MM-dd HH:mm:ss,SSS',GMT+8:00}] %-5p [%.10t][%X{CU}] %logger{36}[%L] - %m%n" />
+    <property name="demo.log.charset" value="UTF-8" />
+    <property name="demo.log.maxHistory" value="30" />
+    <property name="demo.log.root" value="/data/logs/" />
+	
+    <appender name="StdoutLogger" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder charset="UTF-8">
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+	
+
+    <appender name="DB" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logisticscenter.log.root}db.log</file>
+        <param name="datePattern" value=".yyyy-MM-dd" />
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>db.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${demo.log.maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>${demo.log.charset}</charset>
+            <pattern>${demo.log.pattern}</pattern>
+        </encoder>
+    </appender>
+    
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logisticscenter.log.root}error.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>error.%d{yyyy-MM-dd}.log</fileNamePattern>
+        </rollingPolicy>
+        <encoder>
+            <charset>${demo.log.charset}</charset>
+            <pattern>${demo.log.pattern}</pattern>
+        </encoder>
+    </appender>
+
+
+    <!--myibatis log configure-->
+    <logger name="org.apache.ibatis" level="DEBUG" additivity="false">
+        <appender-ref ref="DB"/>
+    </logger>
+
+    <root level="ERROR">
+        <appender-ref ref="StdoutLogger"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+
+</configuration>
