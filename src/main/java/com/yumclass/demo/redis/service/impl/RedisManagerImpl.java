@@ -1,9 +1,14 @@
 package com.yumclass.demo.redis.service.impl;
 
 import com.yumclass.demo.redis.service.RedisManager;
+import com.yunclass.demo.util.SerializeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.codehaus.plexus.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -21,11 +26,67 @@ import java.util.concurrent.TimeUnit;
  * @Version 1.0
  */
 @Slf4j
-@Service("dmsRedisManager")
-public class RedisManagerImpl implements RedisManager {
+@Service
+public class RedisManagerImpl<T> implements RedisManager<T> {
 
     @Autowired
     private JedisPool jedisPool;
+
+    @Autowired
+    private RedisTemplate<String,T> redisTemplate;
+
+    @Override
+    public void save(String key, String field, T object) {
+        this.save(key,field,object,7200);
+    }
+
+    @Override
+    public void save(final String key,final String field,T object, final long expire) {
+
+        final byte[] vbytes = SerializeUtil.serialize(object);
+        redisTemplate.execute(new RedisCallback<T>() {
+            @Override
+            public T doInRedis(RedisConnection connection)
+                    throws DataAccessException {
+                byte[] keyBytes = redisTemplate.getStringSerializer().serialize(key);
+                connection.hSet(keyBytes,
+                        redisTemplate.getStringSerializer().serialize(field),vbytes);
+                connection.expire(keyBytes,expire);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public Boolean delete(final String key,final String field) {
+
+        return redisTemplate.execute(new RedisCallback<Boolean>() {
+            @Override
+            public Boolean doInRedis(RedisConnection connection)
+                    throws DataAccessException {
+                return connection.hDel(redisTemplate.getStringSerializer().serialize(key),
+                        redisTemplate.getStringSerializer().serialize(field)) > 0;
+            }
+        });
+    }
+
+    @Override
+    public <V> V get(final String key, final String field, Class<V> clazz) {
+
+        return redisTemplate.execute(new RedisCallback<V>() {
+            @Override
+            public V doInRedis(RedisConnection connection)
+                    throws DataAccessException {
+                byte[] keyBytes = redisTemplate.getStringSerializer().serialize(key);
+                byte[] fieldBytes = redisTemplate.getStringSerializer().serialize(field);
+                if (connection.hExists(keyBytes,fieldBytes)) {
+                    byte[] valuebytes = connection.hGet(keyBytes,fieldBytes);
+                    return (V) SerializeUtil.unserialize(valuebytes);
+                }
+                return null;
+            }
+        });
+    }
 
     @Override
     public String tryRedisLock(String lockKey,long timeout, TimeUnit unit) {

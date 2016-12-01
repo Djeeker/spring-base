@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
  * @Author kongjun
  * @Version 1.0
  */
-public interface RedisManager {
+public interface RedisManager<T> {
 
     /**
      * 获取锁:
@@ -29,4 +29,39 @@ public interface RedisManager {
      * @param lockKey
      */
     void unLockRedis(String lockKey, String lockVal);
+
+    /**
+     * hset
+     * @param key
+     * @param field
+     * @param object
+     */
+    void save(String key,String field,T object);
+
+    /**
+     * hset
+     * @param key
+     * @param field
+     * @param object
+     * @param expire
+     */
+    void save(String key,String field,T object,long expire);
+
+    /**
+     * 删除
+     * @param key
+     * @param field
+     * @return
+     */
+    Boolean delete(String key,String field);
+
+    /**
+     * hget
+     * @param key
+     * @param field
+     * @param clazz
+     * @param <V>
+     * @return
+     */
+    <V> V get(String key,String field,Class<V> clazz);
 }
