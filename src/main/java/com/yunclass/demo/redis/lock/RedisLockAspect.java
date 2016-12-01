@@ -18,7 +18,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 项目名称：mini
+ * 项目名称：spring-base
  *
  * @Description：
  * @Date：2016年10月15日 13:28

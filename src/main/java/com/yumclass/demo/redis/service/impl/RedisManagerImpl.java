@@ -1,9 +1,8 @@
 package com.yumclass.demo.redis.service.impl;
 
-import com.mini.common.constant.DmsConstant;
-import com.mini.dms.biz.redis.service.RedisManager;
+import com.yumclass.demo.redis.service.RedisManager;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.codehaus.plexus.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
@@ -52,7 +51,7 @@ public class RedisManagerImpl implements RedisManager {
                 }
 
                 //等待重试
-                Thread.sleep(DmsConstant.REDIS_GET_LOCK_RETRY_WAIT);
+                Thread.sleep(1000);
             }
 
         } catch (Exception e) {
